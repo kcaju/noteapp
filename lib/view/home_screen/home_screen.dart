@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:noteapp/dummy_db.dart';
+import 'package:noteapp/utils/app_sessions.dart';
 import 'package:noteapp/utils/color_constant.dart';
+import 'package:noteapp/view/detail_screen/detail_screen.dart';
 import 'package:noteapp/view/home_screen/widget/build_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,6 +19,16 @@ class _HomeScreenState extends State<HomeScreen> {
   TextEditingController title = TextEditingController();
   TextEditingController des = TextEditingController();
   TextEditingController date = TextEditingController();
+  var noteBox = Hive.box(AppSessions.NOTEBOX); //take refernce //step 2
+  List noteKeys = []; //STEP4
+//step 5
+  @override
+  void initState() {
+    //inital value setting
+    noteKeys = noteBox.keys.toList();
+    setState(() {});
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,32 +52,53 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: ListView.separated(
             padding: EdgeInsets.all(15),
-            itemBuilder: (context, index) => BuildCard(
-                noteColor:
-                    DummyDb.noteColor[DummyDb.addnNote[index]['colorIndex']],
-                //DummyDb.addnNote[index]['colorIndex'] this is an index bcoz int value is asssigned to colorIndex key
-                onEdit: () {
-                  //assign data to controllers
-                  title.text = DummyDb.addnNote[index]['title'];
-                  des.text = DummyDb.addnNote[index]['desc'];
-                  date.text = DummyDb.addnNote[index]['date'];
-                  selectedColorIndex = DummyDb.addnNote[index]['colorIndex'];
-                  //another method
-                  // title=TextEditingController(text: DummyDb.addnNote[index]['title']);
-                  //index assigned to itmindex
-                  _customBottomSheet(context, isEdit: true, itemIndex: index);
+            itemBuilder: (context, index) {
+              //step 6
+              var currentNote = noteBox.get(noteKeys[index]);
+
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DetailScreen(
+                            title: currentNote['title'],
+                            date: currentNote['date'],
+                            des: currentNote['desc'],
+                            noteColor:
+                                DummyDb.noteColor[currentNote['colorIndex']]),
+                      ));
                 },
-                onDelete: () {
-                  DummyDb.addnNote.removeAt(index);
-                  setState(() {});
-                },
-                title: DummyDb.addnNote[index]['title'],
-                date: DummyDb.addnNote[index]['date'],
-                des: DummyDb.addnNote[index]['desc']),
+                child: BuildCard(
+                  onEdit: () {
+                    //assign data to controllers
+                    title.text = currentNote['title'];
+                    des.text = currentNote['desc'];
+                    date.text = currentNote['date'];
+                    selectedColorIndex = currentNote['colorIndex'];
+                    //another method
+                    // title=TextEditingController(text: DummyDb.addnNote[index]['title']);
+                    //index assigned to itmindex
+                    _customBottomSheet(context, isEdit: true, itemIndex: index);
+                  },
+                  //step 7
+                  onDelete: () {
+                    noteBox.delete(noteKeys[index]);
+                    noteKeys = noteBox.keys.toList();
+                    setState(() {});
+                  },
+                  title: currentNote['title'],
+                  date: currentNote['date'],
+                  des: currentNote['desc'],
+                  noteColor: DummyDb.noteColor[currentNote['colorIndex']],
+                  //DummyDb.addnNote[index]['colorIndex'] this is an index bcoz int value is asssigned to colorIndex key
+                ),
+              );
+            },
             separatorBuilder: (context, index) => SizedBox(
                   height: 15,
                 ),
-            itemCount: DummyDb.addnNote.length),
+            itemCount: noteKeys.length),
       ),
     );
   }
@@ -135,6 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 20,
               ),
               TextFormField(
+                readOnly: true,
                 controller: date,
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
@@ -153,6 +189,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     hintText: "Date",
                     fillColor: ColorConstant.mainwhite.withOpacity(0.5),
                     filled: true,
+                    suffixIcon: IconButton(
+                        onPressed: () async {
+                          var selectedDate = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2021),
+                              lastDate: DateTime.now());
+                          if (selectedDate != null) {
+                            date.text =
+                                DateFormat("dd,MMMM,y").format(selectedDate);
+                            //pacakge intl added
+                          }
+                        },
+                        icon: Icon(
+                          Icons.calendar_month_outlined,
+                        )),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10))),
               ),
@@ -206,18 +257,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   InkWell(
                     onTap: () {
                       isEdit
-                          ? DummyDb.addnNote[itemIndex!] = {
+                          ? noteBox.put(noteKeys[itemIndex!], {
                               "title": title.text,
                               "date": date.text,
                               "desc": des.text,
                               "colorIndex": selectedColorIndex
-                            }
-                          : DummyDb.addnNote.add({
+                            })
+                          : noteBox.add({
+                              //step 3 to add new note to hive storage
                               "title": title.text,
                               "date": date.text,
                               "desc": des.text,
                               "colorIndex": selectedColorIndex
                             });
+                      noteKeys = noteBox.keys.toList();
+                      // to update the keylist after adding a note
                       Navigator.pop(context);
                       setState(() {});
                     },
