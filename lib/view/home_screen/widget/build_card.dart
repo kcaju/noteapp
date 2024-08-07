@@ -63,8 +63,7 @@ class BuildCard extends StatelessWidget {
             children: [
               Text(
                 date,
-                style: TextStyle(
-                    color: ColorConstant.blue.withOpacity(0.8), fontSize: 18),
+                style: TextStyle(color: ColorConstant.mainblack, fontSize: 18),
               ),
               IconButton(
                 onPressed: () {

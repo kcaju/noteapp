@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 20,
               ),
               TextFormField(
-                readOnly: true,
+                readOnly: true, //means we can't type
                 controller: date,
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {

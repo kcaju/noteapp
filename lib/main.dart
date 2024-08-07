@@ -4,7 +4,7 @@ import 'package:noteapp/utils/app_sessions.dart';
 import 'package:noteapp/view/splash_screen/splash_screen.dart';
 
 void main() async {
-  await Hive.initFlutter();
+  await Hive.initFlutter(); //initialise hive
   var box = await Hive.openBox(AppSessions.NOTEBOX); //hive -step 1
   runApp(MyApp());
 }
